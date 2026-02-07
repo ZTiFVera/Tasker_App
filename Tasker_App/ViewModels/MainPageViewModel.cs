@@ -8,176 +8,92 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
 using Tasker_App.Models;
+using System.Diagnostics;
 
 namespace Tasker_App.ViewModels
 {
     public partial class MainPageViewModel : ObservableObject
     {
-        private List<TaskItem> allTasks = new();
+        private readonly List<TaskItem> allTasks = new();
 
-        [ObservableProperty]
-        private ObservableCollection<Category> categories = new();
+        [ObservableProperty] private ObservableCollection<Category> categories = new();
+        [ObservableProperty] private ObservableCollection<TaskItem> filteredTasks = new();
+        [ObservableProperty] private Category selectedCategory;
+        [ObservableProperty] private string filterStatus = "pending";
+        [ObservableProperty] private int totalTasksCount = 0;
 
-        [ObservableProperty]
-        private ObservableCollection<TaskItem> filteredTasks = new();
+        public MainPageViewModel() => LoadSampleData();
 
-        [ObservableProperty]
-        private Category selectedCategory;
-
-        [ObservableProperty]
-        private string filterStatus = "pending";
-
-        [ObservableProperty]
-        private int totalTasksCount = 0;
-
-        public MainPageViewModel()
-        {
-            LoadSampleData();
-        }
-
-        // Called automatically by the source generator when SelectedCategory changes
         partial void OnSelectedCategoryChanged(Category value)
         {
-            // Deselect others and select the newly chosen category
             foreach (var cat in Categories)
                 cat.IsSelected = false;
 
             if (value != null)
                 value.IsSelected = true;
 
-            // Refresh filtered tasks for the newly selected category
             UpdateFilteredTasks();
         }
 
         private void LoadSampleData()
         {
-            // Sample Categories (TaskCount will be recalculated)
-            var tutorialsCategory = new Category
-            {
-                Id = 1,
-                Name = "TUTORIALS",
-                ColorCode = "#7B68EE"
-            };
+            var c1 = new Category { Id = 1, Name = "TUTORIALS", ColorCode = "#7B68EE" };
+            var c2 = new Category { Id = 2, Name = "SHOPPING", ColorCode = "#20B2AA" };
+            var c3 = new Category { Id = 3, Name = "GAMING", ColorCode = "#FF8C00" };
 
-            var shoppingCategory = new Category
-            {
-                Id = 2,
-                Name = "SHOPPING",
-                ColorCode = "#20B2AA"
-            };
+            Categories.Add(c1);
+            Categories.Add(c2);
+            Categories.Add(c3);
 
-            var tutorialsCategory2 = new Category
+            allTasks.AddRange(new[]
             {
-                Id = 3,
-                Name = "GAMING",
-                ColorCode = "#FF8C00"
-            };
+                new TaskItem { Id = 1, Title = "Plan next course", CategoryId = 1, CategoryName = "TUTORIALS", IsCompleted = false, CreatedDate = DateTime.Now },
+                new TaskItem { Id = 2, Title = "Update Github Repository", CategoryId = 2, CategoryName = "SHOPPING", IsCompleted = false, CreatedDate = DateTime.Now },
+                new TaskItem { Id = 3, Title = "Buy some Eggs", CategoryId = 2, CategoryName = "SHOPPING", IsCompleted = false, CreatedDate = DateTime.Now }
+            });
 
-            Categories.Add(tutorialsCategory);
-            Categories.Add(shoppingCategory);
-            Categories.Add(tutorialsCategory2);
-
-            // Sample Tasks
-            allTasks = new()
+            void work()
             {
-                new TaskItem
-                {
-                    Id = 1,
-                    Title = "Plan next course",
-                    CategoryId = 1,
-                    CategoryName = "TUTORIALS",
-                    IsCompleted = false,
-                    CreatedDate = DateTime.Now
-                },
-                new TaskItem
-                {
-                    Id = 2,
-                    Title = "Update Github Repository",
-                    CategoryId = 2,
-                    CategoryName = "SHOPPING",
-                    IsCompleted = false,
-                    CreatedDate = DateTime.Now
-                },
-                new TaskItem
-                {
-                    Id = 3,
-                    Title = "Buy some Eggs",
-                    CategoryId = 2,
-                    CategoryName = "SHOPPING",
-                    IsCompleted = false,
-                    CreatedDate = DateTime.Now
-                }
-            };
-
-            // Add tasks to categories (ensure runs on UI thread)
-            void addWork()
-            {
-                foreach (var task in allTasks)
+                // safely populate per-category Tasks (Category handles subscriptions)
+                foreach (var task in allTasks.ToList())
                 {
                     var category = Categories.FirstOrDefault(c => c.Id == task.CategoryId);
                     if (category != null)
-                    {
                         category.Tasks.Add(task);
-                    }
                 }
 
-                // Update progress for all categories
                 foreach (var category in Categories)
-                {
                     category.UpdateProgress();
-                }
 
                 UpdateTotalTasks();
                 UpdateFilteredTasks();
             }
 
-            if (MainThread.IsMainThread)
-                addWork();
-            else
-                MainThread.BeginInvokeOnMainThread(addWork);
+            if (MainThread.IsMainThread) work();
+            else MainThread.BeginInvokeOnMainThread(work);
         }
 
         [RelayCommand]
         private async Task AddCategory()
         {
-            string categoryName = await Application.Current.MainPage.DisplayPromptAsync(
-                "Add Category",
-                "Enter category name:",
-                "Add",
-                "Cancel");
+            string categoryName = await Application.Current.MainPage.DisplayPromptAsync("Add Category", "Enter category name:", "Add", "Cancel");
+            if (string.IsNullOrWhiteSpace(categoryName)) return;
 
-            if (string.IsNullOrWhiteSpace(categoryName))
-                return;
+            string colorCode = await Application.Current.MainPage.DisplayPromptAsync("Category Color", "Enter color code (e.g., #7B68EE):", "Add", "Cancel");
+            if (string.IsNullOrWhiteSpace(colorCode)) colorCode = "#4A7BA7";
 
-            string colorCode = await Application.Current.MainPage.DisplayPromptAsync(
-                "Category Color",
-                "Enter color code (e.g., #7B68EE):",
-                "Add",
-                "Cancel");
-
-            if (string.IsNullOrWhiteSpace(colorCode))
-                return;
-
-            var newCategory = new Category
-            {
-                Id = Categories.Count + 1,
-                Name = categoryName.ToUpper(),
-                ColorCode = colorCode
-            };
+            var newCategory = new Category { Id = (Categories.Count > 0 ? Categories.Max(c => c.Id) : 0) + 1, Name = categoryName.ToUpper(), ColorCode = colorCode };
 
             void work()
             {
                 Categories.Add(newCategory);
                 newCategory.UpdateProgress();
-
-                // Select the newly added category so Add Task works immediately
-                SelectedCategory = newCategory;
+                SelectedCategory = newCategory; // auto-select newly added category
+                Debug.WriteLine($"Added category '{newCategory.Name}' Id={newCategory.Id} Selected={SelectedCategory?.Id}");
             }
 
-            if (MainThread.IsMainThread)
-                work();
-            else
-                MainThread.BeginInvokeOnMainThread(work);
+            if (MainThread.IsMainThread) work();
+            else MainThread.BeginInvokeOnMainThread(work);
         }
 
         [RelayCommand]
@@ -189,18 +105,12 @@ namespace Tasker_App.ViewModels
                 return;
             }
 
-            string taskTitle = await Application.Current.MainPage.DisplayPromptAsync(
-                "Add Task",
-                "Enter task name:",
-                "Add",
-                "Cancel");
-
-            if (string.IsNullOrWhiteSpace(taskTitle))
-                return;
+            string taskTitle = await Application.Current.MainPage.DisplayPromptAsync("Add Task", "Enter task name:", "Add", "Cancel");
+            if (string.IsNullOrWhiteSpace(taskTitle)) return;
 
             var newTask = new TaskItem
             {
-                Id = allTasks.Count + 1,
+                Id = (allTasks.Count > 0 ? allTasks.Max(t => t.Id) : 0) + 1,
                 Title = taskTitle,
                 CategoryId = SelectedCategory.Id,
                 CategoryName = SelectedCategory.Name,
@@ -211,62 +121,37 @@ namespace Tasker_App.ViewModels
             void work()
             {
                 allTasks.Add(newTask);
-                SelectedCategory.Tasks.Add(newTask);
+                SelectedCategory.Tasks.Add(newTask); // Category will subscribe to property changes and UpdateProgress will reflect it
                 SelectedCategory.UpdateProgress();
                 UpdateTotalTasks();
                 UpdateFilteredTasks();
+                Debug.WriteLine($"Added task '{newTask.Title}' to CategoryId={SelectedCategory.Id}");
             }
 
-            if (MainThread.IsMainThread)
-                work();
-            else
-                MainThread.BeginInvokeOnMainThread(work);
-        }
-
-        [RelayCommand]
-        private async Task EditTask(TaskItem task)
-        {
-            if (task == null)
-                return;
-
-            string newTitle = await Application.Current.MainPage.DisplayPromptAsync(
-                "Edit Task",
-                "Edit task name:",
-                "Save",
-                "Cancel",
-                placeholder: task.Title);
-
-            if (!string.IsNullOrWhiteSpace(newTitle) && newTitle != task.Title)
-            {
-                task.Title = newTitle;
-                UpdateFilteredTasks();
-            }
+            if (MainThread.IsMainThread) work();
+            else MainThread.BeginInvokeOnMainThread(work);
         }
 
         [RelayCommand]
         private async Task DeleteTask(TaskItem task)
         {
-            if (task == null)
-                return;
+            if (task == null) return;
 
-            bool confirm = await Application.Current.MainPage.DisplayAlert(
-                "Delete Task",
-                $"Are you sure you want to delete '{task.Title}'?",
-                "Yes",
-                "No");
-
+            bool confirm = await Application.Current.MainPage.DisplayAlert("Delete Task", $"Are you sure you want to delete '{task.Title}'?", "Yes", "No");
             if (!confirm) return;
 
             void work()
             {
                 try
                 {
+                    // remove from master list
                     allTasks.Remove(task);
 
+                    // remove from its category (Category handles unsubscribing)
                     var category = Categories.FirstOrDefault(c => c.Id == task.CategoryId);
                     if (category != null)
                     {
-                        category.Tasks.Remove(task); // Tasks_CollectionChanged will unsubscribe and update progress
+                        category.Tasks.Remove(task);
                         category.UpdateProgress();
                     }
 
@@ -275,14 +160,12 @@ namespace Tasker_App.ViewModels
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"DeleteTask error: {ex}");
+                    Debug.WriteLine($"DeleteTask error: {ex}");
                 }
             }
 
-            if (MainThread.IsMainThread)
-                work();
-            else
-                MainThread.BeginInvokeOnMainThread(work);
+            if (MainThread.IsMainThread) work();
+            else MainThread.BeginInvokeOnMainThread(work);
         }
 
         [RelayCommand]
@@ -290,13 +173,8 @@ namespace Tasker_App.ViewModels
         {
             if (parameter is Category category)
             {
-                // Deselect all categories first
-                foreach (var cat in Categories)
-                    cat.IsSelected = false;
-
-                // Select the clicked category
+                foreach (var cat in Categories) cat.IsSelected = false;
                 category.IsSelected = true;
-
                 SelectedCategory = category;
                 UpdateFilteredTasks();
             }
@@ -313,29 +191,27 @@ namespace Tasker_App.ViewModels
         {
             void work()
             {
+                // snapshot before enumerating
+                var snapshot = allTasks.ToList();
+
                 List<TaskItem> tasks = FilterStatus switch
                 {
-                    "pending" => allTasks.Where(t => !t.IsCompleted).ToList(),
-                    "done" => allTasks.Where(t => t.IsCompleted).ToList(),
-                    _ => allTasks.ToList()
+                    "pending" => snapshot.Where(t => !t.IsCompleted).ToList(),
+                    "done" => snapshot.Where(t => t.IsCompleted).ToList(),
+                    _ => snapshot.ToList()
                 };
 
                 if (SelectedCategory != null)
-                {
                     tasks = tasks.Where(t => t.CategoryId == SelectedCategory.Id).ToList();
-                }
 
+                // replace safely
                 FilteredTasks.Clear();
                 foreach (var task in tasks)
-                {
                     FilteredTasks.Add(task);
-                }
             }
 
-            if (MainThread.IsMainThread)
-                work();
-            else
-                MainThread.BeginInvokeOnMainThread(work);
+            if (MainThread.IsMainThread) work();
+            else MainThread.BeginInvokeOnMainThread(work);
         }
 
         private void UpdateTotalTasks()
@@ -343,18 +219,13 @@ namespace Tasker_App.ViewModels
             TotalTasksCount = allTasks.Count;
         }
 
-        partial void OnFilterStatusChanged(string value)
-        {
-            UpdateFilteredTasks();
-        }
+        partial void OnFilterStatusChanged(string value) => UpdateFilteredTasks();
 
         public void OnTaskCompletionChanged()
         {
+            // Recompute progress for all categories
             foreach (var category in Categories)
-            {
-                // UpdateProgress now sets observable properties; no extra Notify call needed
                 category.UpdateProgress();
-            }
 
             UpdateFilteredTasks();
         }

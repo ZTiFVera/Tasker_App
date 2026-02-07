@@ -1,26 +1,26 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Microsoft.Maui.Controls;
+using Microsoft.Maui.Graphics;
 
 namespace Tasker_App.Converters
 {
     public class TaskCompletionColorConverter : IValueConverter
     {
+        // Completed: darker muted color; Pending: accent
+        private static readonly Color CompletedBg = Color.FromArgb("#2F3942"); // muted dark gray-blue
+        private static readonly Color PendingBg = Color.FromArgb("#163143");   // visible but dark
+
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
             if (value is bool isCompleted)
             {
-                return isCompleted ? Color.FromArgb("#3D5A6F") : Color.FromArgb("#4A7BA7");
+                return isCompleted ? CompletedBg : PendingBg;
             }
-            return Color.FromArgb("#4A7BA7");
+            return PendingBg;
         }
 
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-        {
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) =>
             throw new NotImplementedException();
-        }
     }
 }

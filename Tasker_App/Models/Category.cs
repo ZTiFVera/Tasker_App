@@ -19,7 +19,7 @@ namespace Tasker_App.Models
         [ObservableProperty]
         private string colorCode;
 
-        // Keep TaskCount as an observable property but derive its value from Tasks.Count
+        // Keep TaskCount as observable but derive from Tasks
         [ObservableProperty]
         private int taskCount;
 
@@ -52,22 +52,17 @@ namespace Tasker_App.Models
                     if (e.NewItems != null)
                     {
                         foreach (var item in e.NewItems)
-                        {
                             if (item is TaskItem t)
                                 t.PropertyChanged += TaskItem_PropertyChanged;
-                        }
                     }
 
                     if (e.OldItems != null)
                     {
                         foreach (var item in e.OldItems)
-                        {
                             if (item is TaskItem t)
                                 t.PropertyChanged -= TaskItem_PropertyChanged;
-                        }
                     }
 
-                    // Keep TaskCount in sync and update progress
                     UpdateProgress();
                 }
 
@@ -106,7 +101,6 @@ namespace Tasker_App.Models
         {
             try
             {
-                // Always derive TaskCount from collection to avoid desync
                 TaskCount = Tasks?.Count ?? 0;
 
                 if (TaskCount == 0)

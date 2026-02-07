@@ -1,25 +1,25 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Microsoft.Maui.Controls;
+using Microsoft.Maui.Graphics;
 
 namespace Tasker_App.Converters
 {
     public class FilterButtonColorConverter : IValueConverter
     {
+        private static readonly Color Active = Color.FromArgb("#2F6A8F");
+        private static readonly Color Inactive = Color.FromArgb("#35607A");
+
+        // value is current FilterStatus, parameter is expected filter string (e.g., "all")
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            string currentFilter = value?.ToString() ?? "all";
-            string buttonFilter = parameter?.ToString() ?? "";
+            var current = value as string ?? string.Empty;
+            var expected = parameter as string ?? string.Empty;
 
-            return currentFilter == buttonFilter ? Color.FromArgb("#3D6A8C") : Color.FromArgb("#5A8FC7");
+            return string.Equals(current, expected, StringComparison.OrdinalIgnoreCase) ? Active : Inactive;
         }
 
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-        {
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) =>
             throw new NotImplementedException();
-        }
     }
 }

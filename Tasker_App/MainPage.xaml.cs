@@ -17,7 +17,6 @@ namespace Tasker_App
 
         private void OnTaskCheckChanged(object sender, CheckedChangedEventArgs e)
         {
-            // Ensure UI thread for collection updates and ViewModel reaction
             if (MainThread.IsMainThread)
                 _viewModel.OnTaskCompletionChanged();
             else

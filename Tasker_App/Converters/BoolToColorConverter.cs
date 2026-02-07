@@ -1,28 +1,26 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Microsoft.Maui.Controls;
+using Microsoft.Maui.Graphics;
 
 namespace Tasker_App.Converters
 {
-   
-        public class BoolToColorConverter : IValueConverter
-        {
-            public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
-            {
-                if (value is bool isSelected)
-                {
-                    return isSelected ? Color.FromArgb("#5A8FC7") : Color.FromArgb("#4A7BA7");
-                }
-                return Color.FromArgb("#4A7BA7");
-            }
+    public class BoolToColorConverter : IValueConverter
+    {
+        // Selected: brighter teal/blue; Unselected: slightly transparent/darker than page background
+        private static readonly Color SelectedColor = Color.FromArgb("#1B4965"); // visible highlight
+        private static readonly Color UnselectedColor = Color.FromArgb("#0F1419"); // match page bg (looks subtle)
 
-            public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (value is bool isSelected)
             {
-                throw new NotImplementedException();
+                return isSelected ? SelectedColor : UnselectedColor;
             }
+            return UnselectedColor;
         }
-    
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) =>
+            throw new NotImplementedException();
+    }
 }
