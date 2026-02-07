@@ -1,14 +1,13 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
+using Microsoft.Maui.ApplicationModel;
 using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
+using System.ComponentModel;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Tasker_App.Models
 {
-
     public partial class Category : ObservableObject
     {
         [ObservableProperty]
@@ -20,6 +19,7 @@ namespace Tasker_App.Models
         [ObservableProperty]
         private string colorCode;
 
+        // Keep TaskCount as an observable property but derive its value from Tasks.Count
         [ObservableProperty]
         private int taskCount;
 
@@ -35,37 +35,97 @@ namespace Tasker_App.Models
         [ObservableProperty]
         private string progressText;
 
-        public ObservableCollection<TaskItem> Tasks { get; set; } = new();
+        public ObservableCollection<TaskItem> Tasks { get; set; }
+
+        public Category()
+        {
+            Tasks = new ObservableCollection<TaskItem>();
+            Tasks.CollectionChanged += Tasks_CollectionChanged;
+        }
+
+        private void Tasks_CollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
+        {
+            try
+            {
+                void work()
+                {
+                    if (e.NewItems != null)
+                    {
+                        foreach (var item in e.NewItems)
+                        {
+                            if (item is TaskItem t)
+                                t.PropertyChanged += TaskItem_PropertyChanged;
+                        }
+                    }
+
+                    if (e.OldItems != null)
+                    {
+                        foreach (var item in e.OldItems)
+                        {
+                            if (item is TaskItem t)
+                                t.PropertyChanged -= TaskItem_PropertyChanged;
+                        }
+                    }
+
+                    // Keep TaskCount in sync and update progress
+                    UpdateProgress();
+                }
+
+                if (MainThread.IsMainThread)
+                    work();
+                else
+                    MainThread.BeginInvokeOnMainThread(work);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Tasks_CollectionChanged error: {ex}");
+            }
+        }
+
+        private void TaskItem_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            try
+            {
+                if (e.PropertyName == nameof(TaskItem.IsCompleted))
+                {
+                    void work() => UpdateProgress();
+
+                    if (MainThread.IsMainThread)
+                        work();
+                    else
+                        MainThread.BeginInvokeOnMainThread(work);
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"TaskItem_PropertyChanged error: {ex}");
+            }
+        }
 
         public void UpdateProgress()
         {
-            if (TaskCount == 0)
+            try
             {
-                ProgressPercentage = 0;
-                CompletedTasksCount = 0;
-                ProgressText = "0/0";
+                // Always derive TaskCount from collection to avoid desync
+                TaskCount = Tasks?.Count ?? 0;
+
+                if (TaskCount == 0)
+                {
+                    CompletedTasksCount = 0;
+                    ProgressPercentage = 0;
+                    ProgressText = "0/0";
+                }
+                else
+                {
+                    CompletedTasksCount = Tasks.Count(t => t.IsCompleted);
+                    ProgressPercentage = TaskCount == 0 ? 0 : ((double)CompletedTasksCount / TaskCount) * 100;
+                    ProgressText = $"{CompletedTasksCount}/{TaskCount}";
+                }
             }
-            else
+            catch (Exception ex)
             {
-                CompletedTasksCount = Tasks.Count(t => t.IsCompleted);
-                ProgressPercentage = (double)CompletedTasksCount / TaskCount * 100;
-                ProgressText = $"{CompletedTasksCount}/{TaskCount}";
+                System.Diagnostics.Debug.WriteLine($"UpdateProgress error: {ex}");
             }
         }
-    
-    //public class Category
-    //{
-    //    public int Id { get; set; }
-    //    public string Name { get; set; }
-    //    public string ColorCode { get; set; }
-    //    public int TaskCount { get; set; }
-    //    public bool IsSelected { get; set; }
-    //    public ObservableCollection<TaskItem> Tasks { get; set; } = new();
-    //}
-       public void NotifyProgressChanged()
-        {
-            OnPropertyChanged(nameof(ProgressPercentage));
-            OnPropertyChanged(nameof(ProgressText));
-            OnPropertyChanged(nameof(CompletedTasksCount));
-        }
- }   }
+    }
+}

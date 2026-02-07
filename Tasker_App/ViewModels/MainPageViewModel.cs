@@ -1,10 +1,13 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Maui.ApplicationModel;
+using Microsoft.Maui.Controls;
+using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
 using Tasker_App.Models;
-using Microsoft.Maui.Controls;
 
 namespace Tasker_App.ViewModels
 {
@@ -32,31 +35,42 @@ namespace Tasker_App.ViewModels
             LoadSampleData();
         }
 
+        // Called automatically by the source generator when SelectedCategory changes
+        partial void OnSelectedCategoryChanged(Category value)
+        {
+            // Deselect others and select the newly chosen category
+            foreach (var cat in Categories)
+                cat.IsSelected = false;
+
+            if (value != null)
+                value.IsSelected = true;
+
+            // Refresh filtered tasks for the newly selected category
+            UpdateFilteredTasks();
+        }
+
         private void LoadSampleData()
         {
-            // Sample Categories (start with TaskCount = 0; UpdateProgress will recalc)
+            // Sample Categories (TaskCount will be recalculated)
             var tutorialsCategory = new Category
             {
                 Id = 1,
                 Name = "TUTORIALS",
-                ColorCode = "#7B68EE",
-                TaskCount = 0
+                ColorCode = "#7B68EE"
             };
 
             var shoppingCategory = new Category
             {
                 Id = 2,
                 Name = "SHOPPING",
-                ColorCode = "#20B2AA",
-                TaskCount = 2
+                ColorCode = "#20B2AA"
             };
 
             var tutorialsCategory2 = new Category
             {
                 Id = 3,
-                Name = "TUTORIALS",
-                ColorCode = "#FF8C00",
-                TaskCount = 3
+                Name = "GAMING",
+                ColorCode = "#FF8C00"
             };
 
             Categories.Add(tutorialsCategory);
@@ -95,24 +109,32 @@ namespace Tasker_App.ViewModels
                 }
             };
 
-            // Add tasks to categories
-            foreach (var task in allTasks)
+            // Add tasks to categories (ensure runs on UI thread)
+            void addWork()
             {
-                var category = Categories.FirstOrDefault(c => c.Id == task.CategoryId);
-                if (category != null)
+                foreach (var task in allTasks)
                 {
-                    category.Tasks.Add(task);
+                    var category = Categories.FirstOrDefault(c => c.Id == task.CategoryId);
+                    if (category != null)
+                    {
+                        category.Tasks.Add(task);
+                    }
                 }
+
+                // Update progress for all categories
+                foreach (var category in Categories)
+                {
+                    category.UpdateProgress();
+                }
+
+                UpdateTotalTasks();
+                UpdateFilteredTasks();
             }
 
-            // Update progress for all categories
-            foreach (var category in Categories)
-            {
-                category.UpdateProgress();
-            }
-
-            UpdateTotalTasks();
-            UpdateFilteredTasks();
+            if (MainThread.IsMainThread)
+                addWork();
+            else
+                MainThread.BeginInvokeOnMainThread(addWork);
         }
 
         [RelayCommand]
@@ -140,12 +162,22 @@ namespace Tasker_App.ViewModels
             {
                 Id = Categories.Count + 1,
                 Name = categoryName.ToUpper(),
-                ColorCode = colorCode,
-                TaskCount = 0
+                ColorCode = colorCode
             };
 
-            Categories.Add(newCategory);
-            newCategory.UpdateProgress();
+            void work()
+            {
+                Categories.Add(newCategory);
+                newCategory.UpdateProgress();
+
+                // Select the newly added category so Add Task works immediately
+                SelectedCategory = newCategory;
+            }
+
+            if (MainThread.IsMainThread)
+                work();
+            else
+                MainThread.BeginInvokeOnMainThread(work);
         }
 
         [RelayCommand]
@@ -176,13 +208,19 @@ namespace Tasker_App.ViewModels
                 CreatedDate = DateTime.Now
             };
 
-            allTasks.Add(newTask);
-            SelectedCategory.TaskCount++;
-            SelectedCategory.Tasks.Add(newTask);
-            SelectedCategory.UpdateProgress();
-            UpdateTotalTasks();
+            void work()
+            {
+                allTasks.Add(newTask);
+                SelectedCategory.Tasks.Add(newTask);
+                SelectedCategory.UpdateProgress();
+                UpdateTotalTasks();
+                UpdateFilteredTasks();
+            }
 
-            UpdateFilteredTasks();
+            if (MainThread.IsMainThread)
+                work();
+            else
+                MainThread.BeginInvokeOnMainThread(work);
         }
 
         [RelayCommand]
@@ -217,21 +255,34 @@ namespace Tasker_App.ViewModels
                 "Yes",
                 "No");
 
-            if (confirm)
+            if (!confirm) return;
+
+            void work()
             {
-                allTasks.Remove(task);
-
-                var category = Categories.FirstOrDefault(c => c.Id == task.CategoryId);
-                if (category != null)
+                try
                 {
-                    category.TaskCount--;
-                    category.Tasks.Remove(task);
-                    category.UpdateProgress();
-                }
+                    allTasks.Remove(task);
 
-                UpdateTotalTasks();
-                UpdateFilteredTasks();
+                    var category = Categories.FirstOrDefault(c => c.Id == task.CategoryId);
+                    if (category != null)
+                    {
+                        category.Tasks.Remove(task); // Tasks_CollectionChanged will unsubscribe and update progress
+                        category.UpdateProgress();
+                    }
+
+                    UpdateTotalTasks();
+                    UpdateFilteredTasks();
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"DeleteTask error: {ex}");
+                }
             }
+
+            if (MainThread.IsMainThread)
+                work();
+            else
+                MainThread.BeginInvokeOnMainThread(work);
         }
 
         [RelayCommand]
@@ -260,23 +311,31 @@ namespace Tasker_App.ViewModels
 
         private void UpdateFilteredTasks()
         {
-            List<TaskItem> tasks = FilterStatus switch
+            void work()
             {
-                "pending" => allTasks.Where(t => !t.IsCompleted).ToList(),
-                "done" => allTasks.Where(t => t.IsCompleted).ToList(),
-                _ => allTasks
-            };
+                List<TaskItem> tasks = FilterStatus switch
+                {
+                    "pending" => allTasks.Where(t => !t.IsCompleted).ToList(),
+                    "done" => allTasks.Where(t => t.IsCompleted).ToList(),
+                    _ => allTasks.ToList()
+                };
 
-            if (SelectedCategory != null)
-            {
-                tasks = tasks.Where(t => t.CategoryId == SelectedCategory.Id).ToList();
+                if (SelectedCategory != null)
+                {
+                    tasks = tasks.Where(t => t.CategoryId == SelectedCategory.Id).ToList();
+                }
+
+                FilteredTasks.Clear();
+                foreach (var task in tasks)
+                {
+                    FilteredTasks.Add(task);
+                }
             }
 
-            FilteredTasks.Clear();
-            foreach (var task in tasks)
-            {
-                FilteredTasks.Add(task);
-            }
+            if (MainThread.IsMainThread)
+                work();
+            else
+                MainThread.BeginInvokeOnMainThread(work);
         }
 
         private void UpdateTotalTasks()
@@ -293,10 +352,8 @@ namespace Tasker_App.ViewModels
         {
             foreach (var category in Categories)
             {
+                // UpdateProgress now sets observable properties; no extra Notify call needed
                 category.UpdateProgress();
-
-                // Call the public method instead
-                category.NotifyProgressChanged();
             }
 
             UpdateFilteredTasks();

@@ -21,10 +21,10 @@
 
         <!-- Header -->
         <Grid Grid.Row="0" BackgroundColor="#1B4965" Padding="20,0">
-            <Label Text="TASKER" 
-                   FontSize="24"        
-                   FontAttributes="Bold" 
-                   TextColor="White" 
+            <Label Text="TASKER"
+                   FontSize="24"
+                   FontAttributes="Bold"
+                   TextColor="White"
                    VerticalOptions="Center"/>
         </Grid>
 
@@ -34,31 +34,29 @@
             <!-- Categories Section -->
             <StackLayout Grid.Row="0" Spacing="10">
                 <StackLayout Orientation="Horizontal" Spacing="10">
-                    <Label Text="CATEGORIES" 
-                           FontSize="16" 
-                           FontAttributes="Bold" 
+                    <Label Text="CATEGORIES"
+                           FontSize="16"
+                           FontAttributes="Bold"
                            TextColor="White"
                            VerticalOptions="Center"/>
-                    <Label Text="{Binding TotalTasksCount, StringFormat='Total: {0}'}" 
-                           FontSize="12" 
+                    <Label Text="{Binding TotalTasksCount, StringFormat='Total: {0}'}"
+                           FontSize="12"
                            TextColor="#A0A0A0"
                            VerticalOptions="Center"/>
                 </StackLayout>
 
                 <!-- Categories Collection View -->
-                <CollectionView x:Name="CategoriesCollectionView" 
-                               SelectionMode="Single"
-                               SelectedItem="{Binding SelectedCategory}"
-                               ItemsSource="{Binding Categories}"
-                               SelectionChangedCommand="{Binding CategorySelectionChangedCommand}"
-                               SelectionChangedCommandParameter="{Binding SelectedItem, Source={RelativeSource Self}}">
+                <CollectionView x:Name="CategoriesCollectionView"
+                                SelectionMode="Single"
+                                SelectedItem="{Binding SelectedCategory, Mode=TwoWay}"
+                                ItemsSource="{Binding Categories}">
                     <CollectionView.ItemsLayout>
                         <LinearItemsLayout Orientation="Vertical" ItemSpacing="10"/>
                     </CollectionView.ItemsLayout>
                     <CollectionView.ItemTemplate>
                         <DataTemplate>
-                            <Frame BorderColor="{Binding IsSelected, Converter={StaticResource BoolToColorConverter}}" 
-                                   CornerRadius="8" 
+                            <Frame BorderColor="{Binding IsSelected, Converter={StaticResource BoolToColorConverter}}"
+                                   CornerRadius="8"
                                    HasShadow="False"
                                    Padding="0"
                                    Margin="0"
@@ -66,16 +64,16 @@
                                 <Grid RowDefinitions="*,Auto" Padding="0" Margin="0" RowSpacing="0">
                                     <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Padding="15,12">
                                         <StackLayout Grid.Column="0" Spacing="8">
-                                            <Label Text="{Binding Name}" 
-                                                   FontSize="14" 
-                                                   FontAttributes="Bold" 
+                                            <Label Text="{Binding Name}"
+                                                   FontSize="14"
+                                                   FontAttributes="Bold"
                                                    TextColor="White"/>
-                                            <BoxView BackgroundColor="{Binding ColorCode}" 
-                                                    WidthRequest="40" 
-                                                    HeightRequest="3" 
-                                                    CornerRadius="2"/>
-                                            <Label Text="{Binding ProgressText, StringFormat='Progress: {0}'}" 
-                                                   FontSize="11" 
+                                            <BoxView BackgroundColor="{Binding ColorCode}"
+                                                     WidthRequest="40"
+                                                     HeightRequest="3"
+                                                     CornerRadius="2"/>
+                                            <Label Text="{Binding ProgressText, StringFormat='Progress: {0}'}"
+                                                   FontSize="11"
                                                    TextColor="#D0D0D0"/>
                                         </StackLayout>
                                         <Frame Grid.Column="1"
@@ -90,21 +88,18 @@
                                         </Frame>
                                     </Grid>
 
-                                    <!-- Curved Progress Bar -->
-                                    <Grid Grid.Row="1" 
-                                          ColumnDefinitions="*" 
-                                          Padding="0"
-                                          Margin="0"
-                                          HeightRequest="6"
-                                          x:Name="ProgressBarContainer">
-                                        <BoxView BackgroundColor="#2A5A7A" 
-                                                CornerRadius="3"
-                                                Margin="0"/>
-                                        <BoxView BackgroundColor="{Binding ColorCode}" 
-                                                CornerRadius="3"
-                                                WidthRequest="{Binding ProgressPercentage, Converter={StaticResource ProgressWidthConverter}, ConverterParameter=400}"
-                                                HorizontalOptions="Start"
-                                                Margin="0"/>
+                                    <!-- Curved Progress Bar (visuals) -->
+                                    <Grid Grid.Row="1"
+                                          ColumnDefinitions="*"
+                                          Padding="12,6">
+                                        <!-- You can keep your custom visuals or converters here -->
+                                        <Grid>
+                                            <BoxView BackgroundColor="#1E2A31" HeightRequest="8" CornerRadius="4"/>
+                                            <BoxView BackgroundColor="{Binding ColorCode}"
+                                                     HeightRequest="8"
+                                                     CornerRadius="4"
+                                                     WidthRequest="{Binding ProgressPercentage, Converter={StaticResource ProgressWidthConverter}}"/>
+                                        </Grid>
                                     </Grid>
                                 </Grid>
                             </Frame>
@@ -113,125 +108,118 @@
                 </CollectionView>
 
                 <!-- Add Category Button -->
-                <Button Text="+ Add Category" 
-                       Command="{Binding AddCategoryCommand}" 
-                       BackgroundColor="#4A7BA7" 
-                       TextColor="White" 
-                       CornerRadius="8" 
-                       Padding="15,10" 
+                <Button Text="+ Add Category"
+                       Command="{Binding AddCategoryCommand}"
+                       BackgroundColor="#4A7BA7"
+                       TextColor="White"
+                       CornerRadius="8"
+                       Padding="15,10"
                        FontSize="12"/>
             </StackLayout>
 
             <!-- Filter and Tasks Section -->
             <StackLayout Grid.Row="1" Spacing="10" Margin="0,20,0,0">
-                <Label Text="PENDING TASK" 
-                       FontSize="16" 
-                       FontAttributes="Bold" 
+                <Label Text="PENDING TASK"
+                       FontSize="16"
+                       FontAttributes="Bold"
                        TextColor="White"/>
 
                 <!-- Filter Buttons -->
                 <HorizontalStackLayout Spacing="10">
-                    <Button Text="All" 
-                           Command="{Binding FilterTasksCommand}" 
-                           CommandParameter="all"
-                           BackgroundColor="{Binding FilterStatus, Converter={StaticResource FilterButtonColorConverter}, ConverterParameter='all'}" 
-                           TextColor="White" 
-                           CornerRadius="6" 
-                           Padding="12,8" 
-                           FontSize="11"/>
-                    <Button Text="Pending" 
-                           Command="{Binding FilterTasksCommand}" 
-                           CommandParameter="pending"
-                           BackgroundColor="{Binding FilterStatus, Converter={StaticResource FilterButtonColorConverter}, ConverterParameter='pending'}" 
-                           TextColor="White" 
-                           CornerRadius="6" 
-                           Padding="12,8" 
-                           FontSize="11"/>
-                    <Button Text="Done" 
-                           Command="{Binding FilterTasksCommand}" 
-                           CommandParameter="done"
-                           BackgroundColor="{Binding FilterStatus, Converter={StaticResource FilterButtonColorConverter}, ConverterParameter='done'}" 
-                           TextColor="White" 
-                           CornerRadius="6" 
-                           Padding="12,8" 
-                           FontSize="11"/>
+                    <Button Text="All"
+                            Command="{Binding FilterTasksCommand}"
+                            CommandParameter="all"
+                            BackgroundColor="{Binding FilterStatus, Converter={StaticResource FilterButtonColorConverter}, ConverterParameter='all'}"
+                            TextColor="White"
+                            CornerRadius="6"
+                            Padding="12,8"
+                            FontSize="11"/>
+                    <Button Text="Pending"
+                            Command="{Binding FilterTasksCommand}"
+                            CommandParameter="pending"
+                            BackgroundColor="{Binding FilterStatus, Converter={StaticResource FilterButtonColorConverter}, ConverterParameter='pending'}"
+                            TextColor="White"
+                            CornerRadius="6"
+                            Padding="12,8"
+                            FontSize="11"/>
+                    <Button Text="Done"
+                            Command="{Binding FilterTasksCommand}"
+                            CommandParameter="done"
+                            BackgroundColor="{Binding FilterStatus, Converter={StaticResource FilterButtonColorConverter}, ConverterParameter='done'}"
+                            TextColor="White"
+                            CornerRadius="6"
+                            Padding="12,8"
+                            FontSize="11"/>
                 </HorizontalStackLayout>
 
                 <!-- Tasks Collection View -->
-                <CollectionView x:Name="TasksCollectionView" 
-                               ItemsSource="{Binding FilteredTasks}"
-                               SelectionMode="Single">
+                <CollectionView x:Name="TasksCollectionView"
+                                ItemsSource="{Binding FilteredTasks}"
+                                SelectionMode="Single">
                     <CollectionView.ItemsLayout>
                         <LinearItemsLayout Orientation="Vertical" ItemSpacing="8"/>
                     </CollectionView.ItemsLayout>
                     <CollectionView.ItemTemplate>
                         <DataTemplate>
-                            <Frame BorderColor="#4A7BA7" 
-                                   CornerRadius="8" 
+                            <Frame BorderColor="#4A7BA7"
+                                   CornerRadius="8"
                                    HasShadow="False"
                                    Padding="0"
                                    Margin="0"
                                    BackgroundColor="{Binding IsCompleted, Converter={StaticResource TaskCompletionColorConverter}}">
                                 <Grid RowDefinitions="*,Auto" Padding="0" Margin="0">
                                     <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" Padding="15,12" ColumnSpacing="12">
-                                        <CheckBox Grid.Column="0" 
-                                                 IsChecked="{Binding IsCompleted}"
-                                                 VerticalOptions="Center"
-                                                 CheckedChanged="OnTaskCheckChanged"/>
+                                        <CheckBox Grid.Column="0"
+                                                  IsChecked="{Binding IsCompleted}"
+                                                  VerticalOptions="Center"
+                                                  CheckedChanged="OnTaskCheckChanged"/>
                                         <StackLayout Grid.Column="1" Spacing="5">
-                                            <Label Text="{Binding Title}" 
-                                                   FontSize="14" 
-                                                   FontAttributes="Bold" 
+                                            <Label Text="{Binding Title}"
+                                                   FontSize="14"
+                                                   FontAttributes="Bold"
                                                    TextColor="{Binding IsCompleted, Converter={StaticResource TaskTextColorConverter}}"
                                                    TextDecorations="{Binding IsCompleted, Converter={StaticResource TaskTextDecorationConverter}}"/>
-                                            <Label Text="{Binding CategoryName}" 
-                                                   FontSize="11" 
+                                            <Label Text="{Binding CategoryName}"
+                                                   FontSize="11"
                                                    TextColor="#D0D0D0"/>
                                         </StackLayout>
                                         <Grid Grid.Column="2" ColumnDefinitions="Auto,Auto" ColumnSpacing="8" VerticalOptions="Center">
-                                            <Button Grid.Column="0" 
-                                                   Text="✎" 
-                                                   Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.EditTaskCommand}"
-                                                   CommandParameter="{Binding .}"
-                                                   BackgroundColor="Transparent" 
-                                                   TextColor="White" 
-                                                   FontSize="16" 
-                                                   Padding="5" 
-                                                   CornerRadius="4"/>
-                                            <Button Grid.Column="1" 
-                                                   Text="✕" 
-                                                   Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.DeleteTaskCommand}"
-                                                   CommandParameter="{Binding .}"
-                                                   BackgroundColor="Transparent" 
-                                                   TextColor="#FF6B6B" 
-                                                   FontSize="16" 
-                                                   Padding="5" 
-                                                   CornerRadius="4"/>
+                                            <Button Grid.Column="0"
+                                                    Text="✎"
+                                                    Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.EditTaskCommand}"
+                                                    CommandParameter="{Binding .}"
+                                                    BackgroundColor="Transparent"
+                                                    TextColor="White"/>
+                                            <Button Grid.Column="1"
+                                                    Text="🗑"
+                                                    Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.DeleteTaskCommand}"
+                                                    CommandParameter="{Binding .}"
+                                                    BackgroundColor="Transparent"
+                                                    TextColor="White"/>
                                         </Grid>
                                     </Grid>
 
-                                    <!-- Progress Bar - shows completion status with color -->
-                                    <BoxView Grid.Row="1" 
-                                            BackgroundColor="{Binding IsCompleted, Converter={StaticResource ProgressBarColorConverter}}"
-                                            HeightRequest="4"
-                                            Margin="0"/>
+                                    <Grid Grid.Row="1" Padding="15,8">
+                                        <Label Text="{Binding CreatedDate, StringFormat='{0:MMM d, yyyy h:mm tt}'}"
+                                               FontSize="11"
+                                               TextColor="#A0A0A0"/>
+                                    </Grid>
                                 </Grid>
                             </Frame>
                         </DataTemplate>
                     </CollectionView.ItemTemplate>
                 </CollectionView>
+
+                <!-- Add Task Button -->
+                <Button Text="+ Add Task"
+                       Command="{Binding AddTaskCommand}"
+                       BackgroundColor="#4A7BA7"
+                       TextColor="White"
+                       CornerRadius="8"
+                       Padding="15,10"
+                       FontSize="12"/>
             </StackLayout>
 
-            <!-- Add Task Button -->
-            <Button Grid.Row="2" 
-                   Text="+ Add Task" 
-                   Command="{Binding AddTaskCommand}" 
-                   BackgroundColor="#4A7BA7" 
-                   TextColor="White" 
-                   CornerRadius="8" 
-                   Padding="15,10" 
-                   FontSize="12"
-                   Margin="0,15,0,0"/>
         </Grid>
     </Grid>
 </ContentPage>
