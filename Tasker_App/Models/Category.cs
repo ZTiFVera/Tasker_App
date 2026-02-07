@@ -52,7 +52,7 @@ namespace Tasker_App.Models
                 ProgressText = $"{CompletedTasksCount}/{TaskCount}";
             }
         }
-    }
+    
     //public class Category
     //{
     //    public int Id { get; set; }
@@ -62,4 +62,10 @@ namespace Tasker_App.Models
     //    public bool IsSelected { get; set; }
     //    public ObservableCollection<TaskItem> Tasks { get; set; } = new();
     //}
-}
+       public void NotifyProgressChanged()
+        {
+            OnPropertyChanged(nameof(ProgressPercentage));
+            OnPropertyChanged(nameof(ProgressText));
+            OnPropertyChanged(nameof(CompletedTasksCount));
+        }
+ }   }

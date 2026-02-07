@@ -11,12 +11,9 @@ public partial class MainPage : ContentPage
         InitializeComponent();
         _viewModel = new MainPageViewModel();
         BindingContext = _viewModel;
-
-        // Subscribe to checkbox changes to update progress
-        TasksCollectionView.SelectionChanged += OnTaskCheckChanged;
     }
 
-    private void OnTaskCheckChanged(object sender, SelectionChangedEventArgs e)
+    private void OnTaskCheckChanged(object sender, CheckedChangedEventArgs e)
     {
         MainThread.BeginInvokeOnMainThread(() =>
         {

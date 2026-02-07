@@ -34,13 +34,13 @@ namespace Tasker_App.ViewModels
 
         private void LoadSampleData()
         {
-            // Sample Categories
+            // Sample Categories (start with TaskCount = 0; UpdateProgress will recalc)
             var tutorialsCategory = new Category
             {
                 Id = 1,
                 Name = "TUTORIALS",
                 ColorCode = "#7B68EE",
-                TaskCount = 1
+                TaskCount = 0
             };
 
             var shoppingCategory = new Category
@@ -239,8 +239,12 @@ namespace Tasker_App.ViewModels
         {
             if (parameter is Category category)
             {
+                // Deselect all categories first
                 foreach (var cat in Categories)
-                    cat.IsSelected = cat.Id == category.Id;
+                    cat.IsSelected = false;
+
+                // Select the clicked category
+                category.IsSelected = true;
 
                 SelectedCategory = category;
                 UpdateFilteredTasks();
@@ -287,16 +291,12 @@ namespace Tasker_App.ViewModels
 
         public void OnTaskCompletionChanged()
         {
-            // Update the category progress when a task is marked as done/pending
-            if (SelectedCategory != null)
-            {
-                SelectedCategory.UpdateProgress();
-            }
-
-            // Update all categories progress
             foreach (var category in Categories)
             {
                 category.UpdateProgress();
+
+                // Call the public method instead
+                category.NotifyProgressChanged();
             }
 
             UpdateFilteredTasks();

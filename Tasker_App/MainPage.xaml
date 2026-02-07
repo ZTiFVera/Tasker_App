@@ -13,6 +13,7 @@
             <local:TaskTextColorConverter x:Key="TaskTextColorConverter"/>
             <local:TaskTextDecorationConverter x:Key="TaskTextDecorationConverter"/>
             <local:ProgressBarColorConverter x:Key="ProgressBarColorConverter"/>
+            <local:ProgressWidthConverter x:Key="ProgressWidthConverter"/>
         </ResourceDictionary>
     </ContentPage.Resources>
 
@@ -56,12 +57,12 @@
                     </CollectionView.ItemsLayout>
                     <CollectionView.ItemTemplate>
                         <DataTemplate>
-                            <Frame BorderColor="#4A7BA7" 
+                            <Frame BorderColor="{Binding IsSelected, Converter={StaticResource BoolToColorConverter}}" 
                                    CornerRadius="8" 
                                    HasShadow="False"
                                    Padding="0"
                                    Margin="0"
-                                   BackgroundColor="#4A7BA7">
+                                   BackgroundColor="{Binding IsSelected, Converter={StaticResource BoolToColorConverter}}">
                                 <Grid RowDefinitions="*,Auto" Padding="0" Margin="0" RowSpacing="0">
                                     <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Padding="15,12">
                                         <StackLayout Grid.Column="0" Spacing="8">
@@ -94,13 +95,14 @@
                                           ColumnDefinitions="*" 
                                           Padding="0"
                                           Margin="0"
-                                          HeightRequest="6">
+                                          HeightRequest="6"
+                                          x:Name="ProgressBarContainer">
                                         <BoxView BackgroundColor="#2A5A7A" 
                                                 CornerRadius="3"
                                                 Margin="0"/>
                                         <BoxView BackgroundColor="{Binding ColorCode}" 
                                                 CornerRadius="3"
-                                                WidthRequest="{Binding ProgressPercentage, StringFormat='{0:F0}%'}"
+                                                WidthRequest="{Binding ProgressPercentage, Converter={StaticResource ProgressWidthConverter}, ConverterParameter=400}"
                                                 HorizontalOptions="Start"
                                                 Margin="0"/>
                                     </Grid>
@@ -174,7 +176,8 @@
                                     <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" Padding="15,12" ColumnSpacing="12">
                                         <CheckBox Grid.Column="0" 
                                                  IsChecked="{Binding IsCompleted}"
-                                                 VerticalOptions="Center"/>
+                                                 VerticalOptions="Center"
+                                                 CheckedChanged="OnTaskCheckChanged"/>
                                         <StackLayout Grid.Column="1" Spacing="5">
                                             <Label Text="{Binding Title}" 
                                                    FontSize="14" 
