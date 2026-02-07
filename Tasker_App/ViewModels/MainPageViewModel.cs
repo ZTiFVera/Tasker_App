@@ -1,10 +1,7 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using Tasker_App.Models;
 using Microsoft.Maui.Controls;
@@ -26,6 +23,9 @@ namespace Tasker_App.ViewModels
 
         [ObservableProperty]
         private string filterStatus = "pending";
+
+        [ObservableProperty]
+        private int totalTasksCount = 0;
 
         public MainPageViewModel()
         {
@@ -95,6 +95,23 @@ namespace Tasker_App.ViewModels
                 }
             };
 
+            // Add tasks to categories
+            foreach (var task in allTasks)
+            {
+                var category = Categories.FirstOrDefault(c => c.Id == task.CategoryId);
+                if (category != null)
+                {
+                    category.Tasks.Add(task);
+                }
+            }
+
+            // Update progress for all categories
+            foreach (var category in Categories)
+            {
+                category.UpdateProgress();
+            }
+
+            UpdateTotalTasks();
             UpdateFilteredTasks();
         }
 
@@ -128,6 +145,7 @@ namespace Tasker_App.ViewModels
             };
 
             Categories.Add(newCategory);
+            newCategory.UpdateProgress();
         }
 
         [RelayCommand]
@@ -160,6 +178,9 @@ namespace Tasker_App.ViewModels
 
             allTasks.Add(newTask);
             SelectedCategory.TaskCount++;
+            SelectedCategory.Tasks.Add(newTask);
+            SelectedCategory.UpdateProgress();
+            UpdateTotalTasks();
 
             UpdateFilteredTasks();
         }
@@ -184,7 +205,7 @@ namespace Tasker_App.ViewModels
             }
         }
 
-        [RelayCommand]          
+        [RelayCommand]
         private async Task DeleteTask(TaskItem task)
         {
             if (task == null)
@@ -202,8 +223,13 @@ namespace Tasker_App.ViewModels
 
                 var category = Categories.FirstOrDefault(c => c.Id == task.CategoryId);
                 if (category != null)
+                {
                     category.TaskCount--;
+                    category.Tasks.Remove(task);
+                    category.UpdateProgress();
+                }
 
+                UpdateTotalTasks();
                 UpdateFilteredTasks();
             }
         }
@@ -249,8 +275,30 @@ namespace Tasker_App.ViewModels
             }
         }
 
+        private void UpdateTotalTasks()
+        {
+            TotalTasksCount = allTasks.Count;
+        }
+
         partial void OnFilterStatusChanged(string value)
         {
+            UpdateFilteredTasks();
+        }
+
+        public void OnTaskCompletionChanged()
+        {
+            // Update the category progress when a task is marked as done/pending
+            if (SelectedCategory != null)
+            {
+                SelectedCategory.UpdateProgress();
+            }
+
+            // Update all categories progress
+            foreach (var category in Categories)
+            {
+                category.UpdateProgress();
+            }
+
             UpdateFilteredTasks();
         }
     }

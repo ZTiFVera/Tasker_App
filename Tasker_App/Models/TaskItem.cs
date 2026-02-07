@@ -1,4 +1,5 @@
-﻿using System;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -6,14 +7,27 @@ using System.Threading.Tasks;
 
 namespace Tasker_App.Models
 {
-    public class TaskItem
+    public partial class TaskItem : ObservableObject
     {
-        public int Id { get; set; }
-        public string Title { get; set; }
-        public string Description { get; set; }
-        public bool IsCompleted { get; set; }
-        public int CategoryId { get; set; }
-        public string CategoryName { get; set; }
-        public DateTime CreatedDate { get; set; }
+        [ObservableProperty]
+        private int id;
+
+        [ObservableProperty]
+        private string title;
+
+        [ObservableProperty]
+        private string description;
+
+        [ObservableProperty]
+        private bool isCompleted;
+
+        [ObservableProperty]
+        private int categoryId;
+
+        [ObservableProperty]
+        private string categoryName;
+
+        [ObservableProperty]
+        private DateTime createdDate;
     }
 }
